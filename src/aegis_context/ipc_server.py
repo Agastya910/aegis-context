@@ -109,6 +109,30 @@ def create_app(state: BridgeState) -> FastAPI:
         start = now - timedelta(hours=hours) if hours > 0 else parse_when("today")
         return report_dict(time_report(need_agent().retrieval, start, now))
 
+    @app.post("/automate")
+    def automate_ep(payload: dict | None = None):
+        """Pick the most repetitive task from local memory (or use payload.task) and find a Darwin agent for it."""
+        from .automate import automate
+
+        agent = need_agent()
+        key = state.extras.get("darwin_api_key", "")
+        return automate(agent.retrieval, key, agent.llm, (payload or {}).get("task"))
+
+    @app.get("/automate/candidates")
+    def automate_candidates(days: int = 7):
+        from .automate import repetitive_tasks
+
+        return [{k: t[k] for k in ("app", "title", "runs", "avg_min", "total_min", "score")}
+                for t in repetitive_tasks(need_agent().retrieval, days)]
+
+    @app.get("/", include_in_schema=False)
+    def web_ui():
+        from pathlib import Path
+
+        from fastapi.responses import HTMLResponse
+
+        return HTMLResponse((Path(__file__).parent / "web" / "index.html").read_text(encoding="utf-8"))
+
     @app.post("/chat")
     def chat(payload: ChatRequest):
         agent = need_agent()

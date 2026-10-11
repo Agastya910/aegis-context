@@ -64,6 +64,7 @@ class Config:
     vision_url: str = ""                # empty = use ollama_url; .env OLLAMA_BASE_URL overrides
     # Secret: comes only from the environment / .env (OLLAMA_API_KEY), never written to config.json.
     vision_api_key: str = field(default="", repr=False, metadata={"secret": True})
+    darwin_api_key: str = field(default="", repr=False, metadata={"secret": True})
 
     @property
     def vectors_db(self) -> Path:
@@ -86,12 +87,13 @@ class Config:
         if env.get("OLLAMA_MODEL"):
             cfg.vision_model = env["OLLAMA_MODEL"]
         cfg.vision_api_key = env.get("OLLAMA_API_KEY", "")
+        cfg.darwin_api_key = env.get("DARWIN_API_KEY", "")
         return cfg
 
     def save(self) -> None:
         base = Path(self.home)
         base.mkdir(parents=True, exist_ok=True)
-        data = {k: v for k, v in asdict(self).items() if k != "vision_api_key"}
+        data = {k: v for k, v in asdict(self).items() if k not in ("vision_api_key", "darwin_api_key")}
         (base / "config.json").write_text(json.dumps(data, indent=2))
 
 

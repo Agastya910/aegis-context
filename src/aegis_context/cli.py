@@ -29,7 +29,7 @@ def _make_agent(cfg: Config, storage, ring, embedder):
     if cfg.darwin_enabled:
         from .darwin import DarwinClient
 
-        darwin = DarwinClient(cfg.darwin_url)
+        darwin = DarwinClient(cfg.darwin_url, api_key=cfg.darwin_api_key)
     return ChatAgent(Retrieval(storage, embedder), ring, ChatStore(storage), make_chat_client(cfg), cfg,
                      darwin=darwin)
 
@@ -195,6 +195,7 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     state = BridgeState(storage, ring, embedder, agent=agent)
+    state.extras["darwin_api_key"] = cfg.darwin_api_key
     if a.cmd == "demo":
         _demo_seed(storage, ring, embedder)
     if a.cmd == "run":
@@ -212,7 +213,7 @@ def main(argv: list[str] | None = None) -> None:
         jobs.start()
         state.extras["daemon"] = daemon
     llm = agent.llm.describe() if agent.llm else "none (raw retrieval answers)"
-    print(f"Aegis IPC on http://{cfg.host}:{cfg.port}  ·  chat model: {llm}")
+    print(f"Aegis on http://{cfg.host}:{cfg.port}  (open it in a browser for the web app)  ·  chat model: {llm}")
     start_ipc_server(state, cfg.host, cfg.port)
 
 

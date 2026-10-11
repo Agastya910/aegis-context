@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aegis</title>
+<style>
+:root{--bg:#0e0f14;--panel:#161822;--panel2:#1d2030;--line:#2a2e42;--text:#e8e9f0;--muted:#8d92ab;--accent:#7c9cff;
+--ok:#3ecf8e;--warn:#f5b84b;--bad:#ff6b6b;--chip:#252a3d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 "Segoe UI",system-ui,sans-serif}
+header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{margin:0;font-size:20px;letter-spacing:.5px}header .tag{color:var(--muted)}
+.pill{background:var(--chip);border-radius:99px;padding:3px 10px;font-size:12px;color:var(--muted)}
+.pill.ok{color:var(--ok)}main{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;padding:16px 22px}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.card h2{margin:0 0 10px;font-size:15px;display:flex;align-items:center;gap:8px}.card h2 .sub{color:var(--muted);font-weight:400;font-size:12px}
+button{background:var(--accent);color:#0b0d16;border:0;border-radius:9px;padding:8px 13px;font-weight:600;cursor:pointer}
+button.ghost{background:var(--chip);color:var(--text)}button:disabled{opacity:.5;cursor:wait}
+input{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:9px 11px;width:100%}
+.row{display:flex;gap:8px;align-items:center}.row input{flex:1}
+#chat{height:52vh;overflow:auto;padding-right:6px}.msg{margin:10px 0}.msg .who{font-size:12px;color:var(--muted)}
+.msg.user .body{background:var(--panel2);border-radius:10px;padding:8px 11px;display:inline-block}
+.steps{color:var(--muted);font-size:12px;font-style:italic}.body code{background:var(--chip);padding:1px 5px;border-radius:5px}
+.body pre{background:#0b0c11;border:1px solid var(--line);border-radius:8px;padding:10px;white-space:pre-wrap;font-size:12px}
+a.src{color:var(--accent);text-decoration:none;cursor:pointer;font-weight:600}.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{background:var(--chip);border-radius:99px;padding:4px 10px;font-size:12px;cursor:pointer;border:1px solid transparent}
+.chip:hover{border-color:var(--accent)}.agent{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
+.agent .top{display:flex;justify-content:space-between;gap:8px;align-items:center}.agent .name{font-weight:700}
+.badge{font-size:11px;border-radius:99px;padding:2px 8px;background:var(--chip)}.badge.ready{color:var(--ok)}.badge.unavailable{color:var(--warn)}
+.why{color:#cfd3ea;margin:6px 0 0}.unc{color:var(--muted);font-size:12px;margin-top:4px}
+.sent{background:#10131c;border:1px dashed var(--line);border-radius:10px;padding:10px;font-size:12px;color:var(--muted);margin:8px 0}
+.sent b{color:var(--text)}.task{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.task .k{color:var(--muted)}.big{font-size:22px;font-weight:700}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.stat{background:var(--panel2);border-radius:10px;padding:8px}.stat .l{color:var(--muted);font-size:11px}
+.bar{display:flex;align-items:center;gap:8px;font-size:12px;margin:3px 0}.bar .t{width:150px;color:var(--muted)}
+.bar .f{height:8px;background:var(--accent);border-radius:4px}.tips li{margin:4px 0}
+.tl{font-size:12px;border-left:2px solid var(--line);padding-left:10px;margin:6px 0}.tl .when{color:var(--muted)}
+#modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:20px}
+#modal .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:760px;width:100%;max-height:80vh;overflow:auto;padding:16px;white-space:pre-wrap;font-size:12px}
+.muted{color:var(--muted)}.err{color:var(--bad)}
+</style>
+</head>
+<body>
+<header>
+  <h1>⛨ Aegis</h1><span class="tag">the memory layer for your working life · everything stays on this machine</span>
+  <span id="health" class="pill">connecting…</span>
+</header>
+<main>
+  <section>
+    <div class="card">
+      <h2>💬 Ask your memory <span class="sub">time-aware · follow-ups · cited</span></h2>
+      <div class="chips" id="sugg"></div>
+      <div id="chat"></div>
+      <div class="row" style="margin-top:10px"><input id="q" placeholder="What was I doing 10 minutes ago?  ·  And before that?  ·  How can I optimize my time?" autocomplete="off">
+      <button id="send">Ask</button><button class="ghost" id="newchat" title="New chat">＋</button></div>
+    </div>
+    <div class="card">
+      <h2>🕘 Last 30 minutes <span class="sub">activity episodes from local memory</span></h2>
+      <div id="timeline" class="muted">loading…</div>
+    </div>
+  </section>
+  <section>
+    <div class="card" id="automate">
+      <h2>⚡ Automate with Darwin <span class="sub">your most repetitive task → an agent that can do it</span></h2>
+      <div class="muted" style="margin-bottom:8px">Aegis measures what you repeat (runs × minutes) locally, writes a <b>generic</b> description, and asks the
+        <a class="src" href="https://darwin.so" target="_blank">Darwin</a> agent search. Your screen memory never leaves the device.</div>
+      <div class="chips" id="cands"></div>
+      <div class="row"><input id="taskText" placeholder="…or describe a task you repeat, e.g. copying receipts into an expense sheet">
+        <button id="autoBtn">Find an agent</button></div>
+      <div id="autoOut"></div>
+    </div>
+    <div class="card">
+      <h2>📈 Where your time went <span class="sub">today · measured locally</span></h2>
+      <div id="insights" class="muted">loading…</div>
+    </div>
+    <div class="card">
+      <h2>🛡️ Safe context <span class="sub">paste into any AI · secrets/PII scrubbed · private apps withheld</span></h2>
+      <div class="row"><button id="safeBtn">Build & copy safe context</button><span id="safeMsg" class="muted"></span></div>
+      <pre id="safeOut" style="display:none;white-space:pre-wrap;font-size:12px;background:#0b0c11;border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:10px"></pre>
+    </div>
+  </section>
+</main>
+<div id="modal" onclick="this.style.display='none'"><div class="box" id="modalBox"></div></div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => (s ?? "").toString().replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let session = localStorage.getItem("aegis_session") || null, busy = false;
+
+function md(t) {
+  let h = esc(t);
+  h = h.replace(/```(?:\w+)?\n?([\s\S]*?)```/g, (_, c) => `<pre>${c}</pre>`);
+  h = h.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  h = h.replace(/\[((?:[EFD]\d+)(?:\s*,\s*[EFD]\d+)*)\]/g, (_, ids) =>
+      ids.split(/\s*,\s*/).map(i => `<a class="src" onclick="openSrc('${i}')">[${i}]</a>`).join(" "));
+  return h.replace(/^\s*[-*] (.*)$/gm, "• $1").replace(/\n/g, "<br>");
+}
+async function openSrc(id) {
+  const j = await (await fetch(`/memory/source/${id}`)).json();
+  $("#modalBox").textContent = j.text; $("#modal").style.display = "flex";
+}
+function addMsg(role, html) {
+  const d = document.createElement("div"); d.className = `msg ${role}`;
+  d.innerHTML = `<div class="who">${role === "user" ? "You" : "Aegis"}</div><div class="steps"></div><div class="body">${html}</div>`;
+  $("#chat").appendChild(d); $("#chat").scrollTop = 1e9; return d;
+}
+async function ask(text) {
+  if (busy || !text.trim()) return; busy = true; $("#send").disabled = true;
+  addMsg("user", esc(text)); const m = addMsg("assistant", "<span class='muted'>thinking…</span>");
+  let answer = "";
+  try {
+    const r = await fetch("/chat", {method: "POST", headers: {"content-type": "application/json"},
+                                     body: JSON.stringify({message: text, session_id: session})});
+    const reader = r.body.getReader(), dec = new TextDecoder(); let buf = "";
+    while (true) {
+      const {value, done} = await reader.read(); if (done) break;
+      buf += dec.decode(value, {stream: true}); let i;
+      while ((i = buf.indexOf("\n\n")) >= 0) {
+        const block = buf.slice(0, i); buf = buf.slice(i + 2);
+        const ev = (block.match(/^event: (.*)$/m) || [])[1], data = JSON.parse((block.match(/^data: (.*)$/m) || [, "{}"])[1]);
+        if (ev === "session") { session = data.session_id; localStorage.setItem("aegis_session", session); }
+        else if (ev === "status") m.querySelector(".steps").innerHTML += `· ${esc(data.text)}<br>`;
+        else if (ev === "token") { answer += data.text; m.querySelector(".body").innerHTML = md(answer); $("#chat").scrollTop = 1e9; }
+        else if (ev === "error") m.querySelector(".body").innerHTML += `<div class="err">${esc(data.text)}</div>`;
+      }
+    }
+  } catch (e) { m.querySelector(".body").innerHTML = `<span class="err">${esc(e)}</span>`; }
+  busy = false; $("#send").disabled = false;
+}
+$("#send").onclick = () => { const t = $("#q").value; $("#q").value = ""; ask(t); };
+$("#q").onkeydown = e => { if (e.key === "Enter") $("#send").click(); };
+$("#newchat").onclick = () => { session = null; localStorage.removeItem("aegis_session"); $("#chat").innerHTML = ""; };
+["What was I doing 10 minutes ago?", "And before that?", "Summarize my last hour", "How can I optimize my time?",
+ "Get only the safe info to share", "Find an agent that could help me with what I'm doing"].forEach(s => {
+  const c = document.createElement("span"); c.className = "chip"; c.textContent = s; c.onclick = () => ask(s); $("#sugg").appendChild(c);
+});
+
+async function loadHistory() {
+  if (!session) return;
+  const r = await fetch(`/chat/sessions/${session}`); if (!r.ok) { session = null; return; }
+  (await r.json()).messages.forEach(m => addMsg(m.role, m.role === "user" ? esc(m.content) : md(m.content)));
+}
+async function health() {
+  try { const h = await (await fetch("/health")).json();
+    $("#health").textContent = `● live · ${h.frames} frames · ${h.episodes} episodes · last capture ${h.last_capture_local || "—"} · ${h.llm ? h.llm.primary : "no LLM"}`;
+    $("#health").className = "pill ok"; } catch { $("#health").textContent = "offline"; }
+}
+async function timeline() {
+  const j = await (await fetch("/memory/timeline?minutes=30")).json();
+  $("#timeline").innerHTML = j.items.slice(-12).reverse().map(i =>
+    `<div class="tl"><span class="when">${i.start_local}–${i.end_local}</span> <b>${esc(i.app)}</b> · ${esc(i.title)}
+     <a class="src" onclick="openSrc('${i.id}')">[${i.id}]</a><br>${esc((i.summary || "").slice(0, 180))}</div>`).join("") || "nothing yet";
+}
+async function insights() {
+  const j = await (await fetch("/insights")).json();
+  if (!j.tracked_min) { $("#insights").textContent = "No tracked time yet today."; return; }
+  const max = Math.max(...Object.values(j.by_category));
+  $("#insights").innerHTML = `<div class="stats">
+     <div class="stat"><div class="l">tracked</div><div class="big">${(j.tracked_min/60).toFixed(1)}h</div></div>
+     <div class="stat"><div class="l">switches / h</div><div class="big">${j.switches_per_hour}</div></div>
+     <div class="stat"><div class="l">refocus cost</div><div class="big">${Math.round(j.refocus_cost_min)}m</div></div>
+     <div class="stat"><div class="l">focus ratio</div><div class="big">${Math.round(j.focus_ratio*100)}%</div></div></div>` +
+    Object.entries(j.by_category).map(([k, v]) => `<div class="bar"><span class="t">${esc(k)}</span>
+      <span class="f" style="width:${Math.max(4, 220*v/max)}px"></span><span>${Math.round(v)}m</span></div>`).join("") +
+    (j.tips.length ? `<ul class="tips">${j.tips.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : "");
+}
+async function cands() {
+  const list = await (await fetch("/automate/candidates")).json();
+  $("#cands").innerHTML = list.slice(0, 4).map(t => `<span class="chip" title="${esc(t.title)}">${esc(t.app)} · ${esc(t.title.slice(0, 34))}
+    — ${t.runs}× · ${t.avg_min}m</span>`).join("") || "<span class='muted'>no repeated tasks yet</span>";
+}
+function renderAuto(j) {
+  if (!j.ok && !j.darwin) return `<p class="err">${esc(j.error)}</p>`;
+  const t = j.task, d = j.darwin || {};
+  let h = "";
+  if (t.source === "measured") h += `<div class="task" style="margin-top:10px"><span class="k">Most repetitive task</span><b>${esc(t.app)} · ${esc(t.title)}</b>
+     <span class="k">Measured cost</span><span>${t.runs} runs · ${t.avg_min} min avg · ${t.total_min} min total (last 7 days)</span></div>`;
+  h += `<div class="sent"><b>Only this left your device →</b><br>${esc(d.query || j.capability)}${
+       d.context_sent ? `<br><br>${esc(d.context_sent).replace(/\n/g, "<br>")}` : ""}</div>`;
+  if (d.status === "needs_input") h += `<p>🤔 <b>Darwin asks:</b> ${esc(d.question)}</p>`;
+  if (d.status === "no_match") h += `<p class="muted">No match: ${esc(d.no_match_reason)} (logged as a capability gap)</p>`;
+  (d.matches || []).forEach(m => {
+    h += `<div class="agent"><div class="top"><span class="name">#${m.rank} ${esc(m.name)}</span>
+      <span class="badge ${esc(m.readiness)}">${m.can_start_thread ? "ready to start" : esc(m.readiness || "listed")}</span></div>
+      <div class="why">${esc((m.reasons || [])[0] || m.description)}</div>
+      ${(m.uncertainties || []).length ? `<div class="unc">⚠ ${esc(m.uncertainties[0])}</div>` : ""}
+      <div style="margin-top:8px"><a href="https://darwin.so" target="_blank"><button class="ghost">Open in Darwin to approve →</button></a></div></div>`;
+  });
+  if (d.search_id) h += `<div class="muted" style="font-size:11px">Darwin search ${esc(d.search_id)}</div>`;
+  return h;
+}
+async function automate(task) {
+  $("#autoBtn").disabled = true; $("#autoOut").innerHTML = "<p class='muted'>Measuring your repeated tasks → describing it generically → asking Darwin…</p>";
+  try {
+    const j = await (await fetch("/automate", {method: "POST", headers: {"content-type": "application/json"},
+                                                body: JSON.stringify({task: task || null})})).json();
+    $("#autoOut").innerHTML = renderAuto(j);
+  } catch (e) { $("#autoOut").innerHTML = `<p class="err">${esc(e)}</p>`; }
+  $("#autoBtn").disabled = false;
+}
+$("#autoBtn").onclick = () => automate($("#taskText").value);
+$("#taskText").onkeydown = e => { if (e.key === "Enter") $("#autoBtn").click(); };
+$("#safeBtn").onclick = async () => {
+  const j = await (await fetch("/context/safe?minutes=30")).json();
+  $("#safeOut").style.display = "block"; $("#safeOut").textContent = j.text;
+  try { await navigator.clipboard.writeText(j.text); $("#safeMsg").textContent = "copied ✓"; } catch { $("#safeMsg").textContent = "select & copy"; }
+};
+loadHistory(); health(); timeline(); insights(); cands();
+setInterval(health, 10000); setInterval(timeline, 30000);
+</script>
+</body>
+</html>
