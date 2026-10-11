@@ -25,7 +25,13 @@ def _make_agent(cfg: Config, storage, ring, embedder):
     from .llm import make_chat_client
     from .retrieval import Retrieval
 
-    return ChatAgent(Retrieval(storage, embedder), ring, ChatStore(storage), make_chat_client(cfg), cfg)
+    darwin = None
+    if cfg.darwin_enabled:
+        from .darwin import DarwinClient
+
+        darwin = DarwinClient(cfg.darwin_url)
+    return ChatAgent(Retrieval(storage, embedder), ring, ChatStore(storage), make_chat_client(cfg), cfg,
+                     darwin=darwin)
 
 
 def _demo_seed(storage, ring, embedder) -> None:
@@ -100,6 +106,11 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("migrate", help="upgrade the memory db schema and backfill episodes/chunks")
     sub.add_parser("reembed", help="recompute stored vectors with the configured embedder")
     sub.add_parser("redact-existing", help="scrub secrets (API keys, tokens) from stored rows")
+    ins = sub.add_parser("insights", help="where your time went: categories, switches, focus blocks, tips")
+    ins.add_argument("--hours", type=float, default=0, help="look back N hours (default: since midnight)")
+    sh = sub.add_parser("share", help="print a sanitized, paste-ready context pack")
+    sh.add_argument("--minutes", type=int, default=30)
+    sh.add_argument("--focus", default=None)
     sub.add_parser("eval", help="run the scripted chat evaluation against a synthetic day (uses the real LLM)")
     a = p.parse_args(argv)
 
@@ -150,6 +161,20 @@ def main(argv: list[str] | None = None) -> None:
             print(f"[{h.source_id}] {fmt_local(h.start)}-{fmt_local(h.end)} {h.app} | {h.title}\n    {h.activity}"
                   + (f"\n    typed: {h.typed}" if h.typed else ""))
         print(f"({total} episodes)")
+        return
+
+    if a.cmd in ("insights", "share"):
+        from .insights import format_report, time_report
+        from .retrieval import Retrieval
+        from .safe import build_pack
+        from .timeutil import parse_when, utc_now
+
+        r = Retrieval(storage, embedder)
+        if a.cmd == "share":
+            print(build_pack(r, a.minutes, a.focus, private_terms=cfg.private_terms).text)
+        else:
+            start = utc_now() - timedelta(hours=a.hours) if a.hours else parse_when("today")
+            print(format_report(time_report(r, start, utc_now())))
         return
 
     agent = _make_agent(cfg, storage, ring, embedder)

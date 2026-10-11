@@ -175,13 +175,14 @@ def run_hud(hotkey: str = "<ctrl>+<shift>+<space>", base: str = BASE) -> None:
             self.status = QLabel("")
             self.status.setStyleSheet("color:#999")
             self.input = QLineEdit()
-            self.input.setPlaceholderText("Ask about anything you've had on screen… (Enter on empty = copy context)")
+            self.input.setPlaceholderText("Ask about anything you've had on screen… (Enter on empty = copy safe context)")
             self.input.returnPressed.connect(self.submit)
             row = QHBoxLayout()
             self.buttons = {}
             for text, slot in (("Send", self.submit), ("Stop", self.stop), ("New chat", self.new_chat),
-                               ("Recent", self.show_recent), ("Copy answer", self.copy_answer),
-                               ("Copy context", self.copy_context)):
+                               ("Recent", self.show_recent), ("Insights", self.insights),
+                               ("Find agents", self.find_agents), ("Copy answer", self.copy_answer),
+                               ("Copy safe context", self.copy_context)):
                 b = QPushButton(text)
                 b.clicked.connect(slot)
                 row.addWidget(b)
@@ -265,6 +266,17 @@ def run_hud(hotkey: str = "<ctrl>+<shift>+<space>", base: str = BASE) -> None:
                 self.input.setText(self.last_question)
 
         # --- actions --------------------------------------------------------
+        def ask(self, q: str):
+            if not self.streaming:
+                self.input.setText(q)
+                self.submit()
+
+        def insights(self):
+            self.ask("How did I spend my time today, and what should I change to get more done?")
+
+        def find_agents(self):
+            self.ask("Find agents on Darwin that could help me with what I'm working on right now.")
+
         def submit(self):
             q = self.input.text().strip()
             if self.streaming:
@@ -324,8 +336,8 @@ def run_hud(hotkey: str = "<ctrl>+<shift>+<space>", base: str = BASE) -> None:
             self.status.setText("answer copied" if last else "nothing to copy")
 
         def copy_context(self):
-            def fetch():
-                j = requests.get(f"{base}/context/recent", params={"within_s": 120}, timeout=3).json()
+            def fetch():  # sanitized pack: secrets/PII scrubbed, email/chat/finance withheld, no raw screen text
+                j = requests.get(f"{base}/context/safe", params={"minutes": 30}, timeout=5).json()
                 return "context", j
             self._bg(fetch)
 
@@ -377,9 +389,11 @@ def run_hud(hotkey: str = "<ctrl>+<shift>+<space>", base: str = BASE) -> None:
                 self.messages.append({"role": "info", "text": "**Last 15 minutes**\n\n" + "\n".join(lines)})
                 self.render()
             elif kind == "context":
-                self.context = data.get("speakable", "")
+                self.context = data.get("text", "")
                 QApplication.clipboard().setText(self.context)
-                self.status.setText("context copied to clipboard" if self.context else "nothing to copy")
+                held = sum(data.get("withheld", {}).values())
+                self.status.setText(f"safe context copied ({data.get('included', 0)} items"
+                                    + (f", {held:.0f} min private activity withheld" if held else "") + ")")
             elif kind == "source":
                 SourceDialog(self, data.get("id", ""), data.get("text", "")).show()
             elif kind == "bg_error":

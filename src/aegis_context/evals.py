@@ -47,6 +47,12 @@ CONVERSATION = [
     ("what did I do yesterday?", lambda a, st: re.search(
         r"\bno\b|nothing|don't have|do not have|isn't any|not (captured|available|recorded)|only (have|covers)|"
         r"starts|begins", a.lower()) is not None, "says there is no data for yesterday"),
+    ("how can i optimize my time spent on tasks?", lambda a, st: any("Measuring your time" in s for s in st)
+     and re.search(r"\d+\s*(min|%|h\b|switch)", a.lower()) is not None, "measured time report + concrete advice"),
+    ("get only the safe info to share from this", lambda a, st: any("safe context pack" in s for s in st)
+     and "priya" not in a.lower() and "auc 0.91" not in a.lower(), "sanitized pack, no private names/content"),
+    ("find an agent that could help me plan my week", lambda a, st: any("Darwin" in s for s in st),
+     "Darwin search with a generic query"),
 ]
 
 
@@ -64,8 +70,13 @@ def run_eval(cfg, summarize: bool = True, out=print) -> bool:
             jobs = MemoryJobs(db, embedder, llm, cfg, clock=lambda: NOW, tz=TZ)
             while jobs.summarize_episodes(limit=20):
                 pass
+        darwin = None
+        if getattr(cfg, "darwin_enabled", False):
+            from .darwin import DarwinClient
+
+            darwin = DarwinClient(cfg.darwin_url)
         agent = ChatAgent(Retrieval(db, embedder, clock=lambda: NOW, tz=TZ), None, ChatStore(db), llm, cfg,
-                          clock=lambda: NOW, tz=TZ)
+                          clock=lambda: NOW, tz=TZ, darwin=darwin)
         sid, passed = None, 0
         out(f"model: {llm.describe()}  ·  frozen now: Sun 2026-10-11 16:00 (UTC-07:00)\n")
         for i, (q, check, expect) in enumerate(CONVERSATION, 1):

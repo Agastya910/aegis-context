@@ -32,13 +32,15 @@ def cited_ids(text: str) -> list[str]:
 
 
 class ChatAgent:
-    def __init__(self, retrieval: Retrieval, ring, chat_store: ChatStore, llm, cfg=None, clock=utc_now, tz=None):
-        self.retrieval, self.ring, self.store, self.llm = retrieval, ring, chat_store, llm
+    def __init__(self, retrieval: Retrieval, ring, chat_store: ChatStore, llm, cfg=None, clock=utc_now, tz=None,
+                 darwin=None):
+        self.retrieval, self.ring, self.store, self.llm, self.darwin = retrieval, ring, chat_store, llm, darwin
         self.clock, self.tz = clock, tz
         self.history_turns = getattr(cfg, "history_turns", 10)
         self.history_char_budget = getattr(cfg, "history_char_budget", 12000)
         self.max_rounds = getattr(cfg, "agent_max_rounds", 4)
         self.tool_result_chars = getattr(cfg, "tool_result_chars", 6000)
+        self.private_terms = list(getattr(cfg, "private_terms", []) or [])
 
     # ---- prompt -----------------------------------------------------------
     def system_prompt(self, session_id: str) -> str:
@@ -74,7 +76,8 @@ class ChatAgent:
         sid = self.store.ensure(session_id)
         yield "session", {"session_id": sid}
         self.store.add_message(sid, "user", user_text)
-        ctx = ToolContext(self.retrieval, self.clock(), self.tz, self.tool_result_chars)
+        ctx = ToolContext(self.retrieval, self.clock(), self.tz, self.tool_result_chars, darwin=self.darwin,
+                          private_terms=self.private_terms)
         if self.llm is None:
             yield from self._finish(sid, ctx, self._offline_answer(user_text, ctx, "No LLM configured"))
             return

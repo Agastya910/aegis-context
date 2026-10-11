@@ -92,6 +92,23 @@ def create_app(state: BridgeState) -> FastAPI:
         return {"status": "ok", "answer": None, "answer_error": None, "matches": matches, "digests": digests,
                 "synthesized": synthesized}
 
+    @app.get("/context/safe")
+    def safe_context(minutes: int = 30, focus: str | None = None):
+        """Sanitized, paste-ready context pack (what the HUD's Copy context uses)."""
+        from .safe import build_pack
+
+        return build_pack(need_agent().retrieval, max(1, min(minutes, 1440)), focus,
+                          private_terms=getattr(need_agent(), "private_terms", None)).as_dict()
+
+    @app.get("/insights")
+    def insights(hours: float = 0):
+        from .insights import report_dict, time_report
+        from .timeutil import parse_when
+
+        now = utc_now()
+        start = now - timedelta(hours=hours) if hours > 0 else parse_when("today")
+        return report_dict(time_report(need_agent().retrieval, start, now))
+
     @app.post("/chat")
     def chat(payload: ChatRequest):
         agent = need_agent()

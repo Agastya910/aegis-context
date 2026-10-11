@@ -53,6 +53,10 @@ class Config:
     exclude_title_patterns: list = field(default_factory=lambda: ["(?i)inprivate", "(?i)incognito",
                                                                   "(?i)private browsing"])
     chunk_size: int = 800
+    # integrations (outbound; only scrubbed, generic text ever leaves the device)
+    darwin_enabled: bool = True
+    private_terms: list = field(default_factory=list)  # e.g. your name; scrubbed from shared context packs
+    darwin_url: str = "https://api.darwin.so/api/v2"
     chunk_overlap: int = 150
 
     answer_backend: str = "none"        # "none" | "ollama": LLM writes the HUD/query answer
