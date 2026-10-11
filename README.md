@@ -4,6 +4,10 @@
 Your computer forgets everything the moment you look away. Aegis doesn't.
 
 Aegis-Context is a persistent, on-device context layer. It quietly watches your workspace, turns every screen state into searchable memory, and brings it back with one keystroke. No window switching, no digging through tabs, no cloud. Ask "what was I looking at five minutes ago?" and just get the answer.
+## Demo
+<img width="1600" height="1200" alt="image" src="https://github.com/user-attachments/assets/7e7ff908-ccbe-45af-a9dc-022036567cc0" />
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/f859a281-7f85-4903-be10-60c23a8de7d9" />
+
 
 ## The problem
 Work is a stream of re-orientation. People switch apps ~1,200 times a day, about 4 hours a week spent getting their bearings (HBR, 2022). About 20% of the workweek goes to hunting for information already seen (McKinsey). And every new AI chat starts with zero context.
