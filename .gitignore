@@ -1,0 +1,47 @@
+# --- Python / build ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Secrets & local config ---
+.env
+.env.*
+!.env.example
+
+# --- Local memory data (never commit screen history) ---
+*.db
+*.db-wal
+*.db-shm
+*.bak.db
+hud_state.json
+
+# --- AI agent / assistant files & implementation scratch ---
+.claude/
+.kilo/
+.cursor/
+.windsurf/
+.aider*
+.codex/
+.gemini/
+.continue/
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+docs/PLAN-*.md
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
