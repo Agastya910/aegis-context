@@ -55,6 +55,7 @@ class Config:
     chunk_size: int = 800
     # integrations (outbound; only scrubbed, generic text ever leaves the device)
     darwin_enabled: bool = True
+    hud_hidden_from_capture: bool = False  # True = HUD invisible to all screen capture (OBS, sharing)
     private_terms: list = field(default_factory=list)  # e.g. your name; scrubbed from shared context packs
     darwin_url: str = "https://api.darwin.so/api/v2"
     chunk_overlap: int = 150

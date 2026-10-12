@@ -47,9 +47,11 @@ class CaptureDaemon:
         cfg=None,
         idle: Callable[[], float] | None = None,
         jobs=None,
+        hud_visible: Callable[[], bool] | None = None,
     ):
         self.storage, self.ring, self.embedder, self.vision = storage, ring, embedder, vision
         self.grab, self.window, self.idle = grab, window, idle or (lambda: 0.0)
+        self.hud_visible = hud_visible or (lambda: False)
         self.interval_s, self.digest_after_s = interval_s, digest_after_s
         self.cfg, self.jobs = cfg, jobs
         self.raw_retention_days = getattr(cfg, "raw_retention_days", 7)
@@ -72,6 +74,9 @@ class CaptureDaemon:
     def capture_once(self) -> Candidate | None:
         win = self.window()
         if skip_reason(win, self.cfg):
+            return None
+        if self.hud_visible():  # HUD on screen: don't record Aegis's own answers; keep the episode alive
+            self.ingestor.heartbeat()
             return None
         got = self.grab()
         frame = got if isinstance(got, Frame) else Frame(got, None)

@@ -113,7 +113,9 @@ def _save_state(state: dict) -> None:
         pass
 
 
-def run_hud(hotkey: str = "<ctrl>+<shift>+<space>", base: str = BASE) -> None:
+def run_hud(hotkey: str = "<ctrl>+<shift>+<space>", base: str = BASE, hide_from_capture: bool = False) -> None:
+    """hide_from_capture=True makes the HUD invisible to ALL screen capture (incl. OBS / screen share);
+    by default it stays visible and the daemon simply pauses while the HUD is on screen."""
     from pynput import keyboard
     from PyQt5.QtCore import QObject, Qt, QTimer, pyqtSignal
     from PyQt5.QtGui import QFont, QKeySequence
@@ -248,7 +250,7 @@ def run_hud(hotkey: str = "<ctrl>+<shift>+<space>", base: str = BASE) -> None:
                 self.move(scr.x() + (scr.width() - self.width()) // 2, scr.y() + int(scr.height() * 0.15))
                 self._placed = True
             self.show()
-            if not self._affinity:
+            if hide_from_capture and not self._affinity:
                 _exclude_from_capture(int(self.winId()))
                 self._affinity = True
             self.raise_()

@@ -20,6 +20,23 @@ def normalize_title(title: str) -> str:
     return " ".join(t.split())
 
 
+def hud_visible() -> bool:
+    """Is the Aegis HUD window currently shown on screen (Windows)? Used to pause capture so the daemon never
+    records its own answers, without hiding the HUD from screen recordings."""
+    import sys
+
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+
+        u32 = ctypes.windll.user32
+        hwnd = u32.FindWindowW(None, HUD_TITLE)
+        return bool(hwnd) and bool(u32.IsWindowVisible(hwnd)) and not u32.IsIconic(hwnd)
+    except Exception:
+        return False
+
+
 def skip_reason(win, cfg=None) -> str | None:
     title = win.title or ""
     if title.startswith(HUD_TITLE):

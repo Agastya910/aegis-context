@@ -125,7 +125,7 @@ def main(argv: list[str] | None = None) -> None:
     if a.cmd == "hud":
         from .hud import run_hud
 
-        run_hud(base=f"http://{cfg.host}:{cfg.port}")
+        run_hud(base=f"http://{cfg.host}:{cfg.port}", hide_from_capture=cfg.hud_hidden_from_capture)
         return
     if a.cmd == "eval":
         from .evals import run_eval
@@ -200,6 +200,7 @@ def main(argv: list[str] | None = None) -> None:
         _demo_seed(storage, ring, embedder)
     if a.cmd == "run":
         from .capture import active_window, grab_frame, idle_seconds
+        from .filters import hud_visible
         from .daemon import CaptureDaemon
 
         from .jobs import MemoryJobs
@@ -208,6 +209,7 @@ def main(argv: list[str] | None = None) -> None:
         daemon = CaptureDaemon(
             storage, ring, embedder, make_vision(cfg), grab_frame, active_window,
             cfg.capture_interval_s, cfg.digest_after_s, cfg=cfg, idle=idle_seconds, jobs=jobs,
+            hud_visible=hud_visible,
         )
         daemon.start()
         jobs.start()

@@ -119,3 +119,21 @@ class TimeTests(unittest.TestCase):
     def test_fmt_local(self):
         self.assertEqual(fmt_local(L(13, 22), tz=TZ), "13:22")
         self.assertEqual(fmt_local("2026-10-11 20:22:00", tz=TZ), "13:22")
+
+
+class HudVisibleTests(unittest.TestCase):
+    def test_daemon_pauses_while_hud_on_screen(self):
+        db, ring = AegisStorageEngine(":memory:"), RingBuffer()
+        shown = [True]
+
+        class V:
+            def describe(self, png):
+                return "text", "editing code"
+
+        d = CaptureDaemon(db, ring, E, V(), lambda: b"png",
+                          lambda: WindowInfo("code.exe", "Code", "main.py", "windows"),
+                          hud_visible=lambda: shown[0])
+        self.assertFalse(d.tick())
+        self.assertEqual(db.count(), 0)
+        shown[0] = False
+        self.assertTrue(d.tick())
